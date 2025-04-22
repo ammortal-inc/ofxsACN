@@ -48,7 +48,7 @@ common:
 	# ADDON_LIBS_EXCLUDE =
 
 linux:
-	ADDON_LIBS = libs/libsACN.a
+	ADDON_LIBS = libs/libsACN.a libs/libEtcPal.a
 
 linux64:
-	ADDON_LIBS = libs/libsACN.a
+	ADDON_LIBS = libs/libsACN.a libs/libEtcPal.a
