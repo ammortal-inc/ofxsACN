@@ -57,7 +57,10 @@ namespace ofxsACN {
         
         for (size_t i = 0; i < pixelCount; i++) {
             // Get the pixel color (handles pixel format internally)
-            ofColor color = pixels.getColor(i);
+            // Note: getColor(index) doesn't access at a pixel index; it accesses
+            // at a channel index. So we need to multiply by the number of channels
+            // to get the correct index for the pixel.
+            ofColor color = pixels.getColor(i * pixels.getNumChannels());
             
             // Convert channels - either 8-bit or 16-bit
             if (use16Bit) {
@@ -165,7 +168,10 @@ namespace ofxsACN {
         
         for (size_t i = 0; i < pixelCount; i++) {
             // Get the pixel color (handles pixel format internally)
-            ofFloatColor color = pixels.getColor(i);
+            // Note: getColor(index) doesn't access at a pixel index; it accesses
+            // at a channel index. So we need to multiply by the number of channels
+            // to get the correct index for the pixel.
+            ofFloatColor color = pixels.getColor(i * pixels.getNumChannels());
             
             // Convert channels - either 8-bit or 16-bit
             if (use16Bit) {
