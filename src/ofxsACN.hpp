@@ -5,6 +5,7 @@
 #include "sacn/cpp/common.h"
 #include "sacn/cpp/source.h"
 #include "etcpal/cpp/log.h"  // For etcpal::Logger
+#include "etcpal/cpp/netint.h" // For etcpal::NetintInfo
 
 namespace ofxsACN {
     
