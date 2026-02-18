@@ -47,9 +47,12 @@ int calculateRequiredUniverses(
     int maxBytesPerUniverse = 512);
 
 /**
- * Resolve requested network interface names to sACN multicast interface structs.
- * Enumerates system network interfaces and matches by friendly name.
- * Returns matching interface names and corresponding SacnMcastInterface objects.
+ * Resolve requested network interface specs to sACN multicast interface structs.
+ * Enumerates system network interfaces and matches each spec by:
+ *   - Interface name: "eth1" (matches friendly_name)
+ *   - Exact IP: "10.0.0.5" (matches interface address)
+ *   - CIDR subnet: "10.0.0.0/24" (matches if interface address is in subnet)
+ * Returns matching interface descriptions and corresponding SacnMcastInterface objects.
  * If requestedInterfaces is empty, returns empty pair (meaning "use all interfaces").
  */
 std::pair<std::vector<std::string>, std::vector<SacnMcastInterface>>

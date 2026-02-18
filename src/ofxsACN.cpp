@@ -273,7 +273,70 @@ std::vector<std::pair<uint8_t *, size_t>> pixelsToSacnDmx<ofFloatPixels>(
     return universes;
 }
 
-// Resolve requested network interface names to sACN multicast interface structs
+// Check if a string looks like a CIDR notation (e.g. "10.0.0.0/24")
+static bool parseCidr(const std::string &cidr, etcpal::IpAddr &outNetwork, unsigned int &outPrefixLen)
+{
+    auto slashPos = cidr.find('/');
+    if (slashPos == std::string::npos)
+        return false;
+
+    std::string ipPart = cidr.substr(0, slashPos);
+    std::string lenPart = cidr.substr(slashPos + 1);
+
+    auto ip = etcpal::IpAddr::FromString(ipPart);
+    if (!ip.IsValid())
+        return false;
+
+    try
+    {
+        outPrefixLen = std::stoul(lenPart);
+    }
+    catch (...)
+    {
+        return false;
+    }
+
+    if (outPrefixLen > 32)
+        return false;
+
+    outNetwork = ip;
+    return true;
+}
+
+// Check if a requested interface spec matches a system network interface.
+// Supports three formats:
+//   - Interface name: "eth1" (matches friendly_name)
+//   - Exact IP: "10.0.0.5" (matches interface address)
+//   - CIDR subnet: "10.0.0.0/24" (matches if interface address is in subnet)
+static bool interfaceMatches(const etcpal::NetintInfo &netint, const std::string &requested)
+{
+    // Try interface name match first
+    if (netint.friendly_name() == requested)
+        return true;
+
+    // Try CIDR subnet match
+    etcpal::IpAddr network;
+    unsigned int prefixLen;
+    if (parseCidr(requested, network, prefixLen))
+    {
+        auto mask = etcpal::IpAddr::NetmaskV4(prefixLen);
+        EtcPalIpAddr ifaceAddr = netint.addr().get();
+        EtcPalIpAddr netAddr = network.get();
+        EtcPalIpAddr maskAddr = mask.get();
+        return etcpal_ip_network_portions_equal(&ifaceAddr, &netAddr, &maskAddr);
+    }
+
+    // Try exact IP match
+    auto requestedIp = etcpal::IpAddr::FromString(requested);
+    if (requestedIp.IsValid())
+        return netint.addr() == requestedIp;
+
+    return false;
+}
+
+// Resolve requested network interface specs to sACN multicast interface structs.
+// Each spec can be an interface name ("eth1"), IP address ("10.0.0.5"), or
+// CIDR subnet ("10.0.0.0/24").
 std::pair<std::vector<std::string>, std::vector<SacnMcastInterface>>
 resolveNetworkInterfaces(const std::vector<std::string> &requestedInterfaces)
 {
@@ -304,9 +367,10 @@ resolveNetworkInterfaces(const std::vector<std::string> &requestedInterfaces)
         ss << "\n- " << netint.friendly_name() << " (" << netint.addr().ToString() << ")";
         for (const auto &requestedInterface : requestedInterfaces)
         {
-            if (netint.friendly_name() == requestedInterface && netint.addr().IsValid())
+            if (interfaceMatches(netint, requestedInterface) && netint.addr().IsValid())
             {
-                matchingInterfaces.push_back(requestedInterface);
+                matchingInterfaces.push_back(
+                    netint.friendly_name() + " (" + netint.addr().ToString() + ")");
 
                 SacnMcastInterface mcastIface;
                 EtcPalMcastNetintId mcastNetintId = {
