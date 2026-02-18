@@ -273,4 +273,54 @@ std::vector<std::pair<uint8_t *, size_t>> pixelsToSacnDmx<ofFloatPixels>(
     return universes;
 }
 
+// Resolve requested network interface names to sACN multicast interface structs
+std::pair<std::vector<std::string>, std::vector<SacnMcastInterface>>
+resolveNetworkInterfaces(const std::vector<std::string> &requestedInterfaces)
+{
+    if (requestedInterfaces.empty())
+    {
+        return {};
+    }
+
+    auto netints = etcpal::netint::GetInterfaces();
+    if (!netints)
+    {
+        ofLogNotice("ofxsACN") << "Failed to query network interfaces.";
+        return {};
+    }
+
+    std::vector<SacnMcastInterface> netint_list;
+    std::vector<std::string> matchingInterfaces;
+
+    std::stringstream ss;
+    ss << "Available network interfaces: ";
+    for (const auto &netint : *netints)
+    {
+        if (static_cast<etcpal_iptype_t>(netint.addr().type()) != kEtcPalIpTypeV4)
+        {
+            continue;
+        }
+
+        ss << "\n- " << netint.friendly_name() << " (" << netint.addr().ToString() << ")";
+        for (const auto &requestedInterface : requestedInterfaces)
+        {
+            if (netint.friendly_name() == requestedInterface && netint.addr().IsValid())
+            {
+                matchingInterfaces.push_back(requestedInterface);
+
+                SacnMcastInterface mcastIface;
+                EtcPalMcastNetintId mcastNetintId = {
+                    static_cast<etcpal_iptype_t>(netint.addr().type()),
+                    netint.index().value()};
+                mcastIface.iface = mcastNetintId;
+                mcastIface.status = kEtcPalErrOk;
+                netint_list.push_back(mcastIface);
+            }
+        }
+    }
+    ofLogNotice("ofxsACN") << ss.str();
+
+    return std::make_pair(matchingInterfaces, netint_list);
+}
+
 } // namespace ofxsACN

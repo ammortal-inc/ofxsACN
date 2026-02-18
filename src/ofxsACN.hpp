@@ -46,6 +46,15 @@ int calculateRequiredUniverses(
     bool useAlpha = false,
     int maxBytesPerUniverse = 512);
 
+/**
+ * Resolve requested network interface names to sACN multicast interface structs.
+ * Enumerates system network interfaces and matches by friendly name.
+ * Returns matching interface names and corresponding SacnMcastInterface objects.
+ * If requestedInterfaces is empty, returns empty pair (meaning "use all interfaces").
+ */
+std::pair<std::vector<std::string>, std::vector<SacnMcastInterface>>
+resolveNetworkInterfaces(const std::vector<std::string> &requestedInterfaces);
+
 } // namespace ofxsACN
 
 #endif /* ofxsACN_hpp */
